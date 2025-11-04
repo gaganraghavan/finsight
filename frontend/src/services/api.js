@@ -1,141 +1,54 @@
-import axios from 'axios';
+import axios from "axios";
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-
-const api = axios.create({
-  baseURL: API_URL,
-  headers: {
-    'Content-Type': 'application/json'
-  }
+const API = axios.create({
+  baseURL: "http://localhost:5000/api",
 });
 
-// Add token to requests
-api.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => Promise.reject(error)
-);
+// attach token
+API.interceptors.request.use((config) => {
+  const token = localStorage.getItem("token");
+  if (token) config.headers.Authorization = `Bearer ${token}`;
+  return config;
+});
 
-// Response interceptor for error handling
-api.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      localStorage.removeItem('token');
-      window.location.href = '/';
-    }
-    return Promise.reject(error);
-  }
-);
+// ----- Auth -----
+export const login = (email, password) =>
+  API.post("/auth/login", { email, password });
+export const signup = (name, email, password) =>
+  API.post("/auth/register", { name, email, password });
+export const me = () => API.get("/auth/me");
 
-// ==================== AUTH ====================
-export const login = (email, password) => 
-  api.post('/auth/login', { email, password });
+// ----- Dashboard -----
+export const getSummary = (params) => API.get("/dashboard/summary", { params });
+export const getCategoryBreakdown = (params) =>
+  API.get("/dashboard/category-breakdown", { params });
+export const getMonthlyTrends = (params) =>
+  API.get("/dashboard/monthly-trends", { params });
+export const getRecentTransactions = (params) =>
+  API.get("/dashboard/recent", { params });
 
-export const register = (name, email, password) => 
-  api.post('/auth/register', { name, email, password });
+// ----- Transactions -----
+export const listTransactions = (params) => API.get("/transactions", { params });
+export const createTransaction = (data) => API.post("/transactions", data);
+export const updateTransaction = (id, data) =>
+  API.put(`/transactions/${id}`, data);
+export const deleteTransaction = (id) =>
+  API.delete(`/transactions/${id}`);
 
-export const getCurrentUser = () => 
-  api.get('/auth/me');
+// ----- Categories -----
+export const listCategories = (params) =>
+  API.get("/categories", { params });
+export const createCategory = (data) => API.post("/categories", data);
 
-// ==================== TRANSACTIONS ====================
-export const getTransactions = (filters) => 
-  api.get('/transactions', { params: filters });
+// ----- Budgets -----
+export const listBudgets = () => API.get("/budgets");
+export const createBudget = (data) => API.post("/budgets", data);
+export const deleteBudget = (id) => API.delete(`/budgets/${id}`);
+export const checkBudgetAlerts = () => API.get("/budgets/alerts/check");
 
-export const getTransaction = (id) => 
-  api.get(`/transactions/${id}`);
+// ----- Recurring -----
+export const listRecurring = (params) => API.get("/recurring", { params });
+export const createRecurring = (data) => API.post("/recurring", data);
+export const toggleRecurring = (id) => API.patch(`/recurring/${id}/toggle`);
 
-export const createTransaction = (data) => 
-  api.post('/transactions', data);
-
-export const updateTransaction = (id, data) => 
-  api.put(`/transactions/${id}`, data);
-
-export const deleteTransaction = (id) => 
-  api.delete(`/transactions/${id}`);
-
-export const bulkDeleteTransactions = (ids) => 
-  api.post('/transactions/bulk-delete', { ids });
-
-// ==================== BUDGETS ====================
-export const getBudgets = () => 
-  api.get('/budgets');
-
-export const getBudget = (id) => 
-  api.get(`/budgets/${id}`);
-
-export const createBudget = (data) => 
-  api.post('/budgets', data);
-
-export const updateBudget = (id, data) => 
-  api.put(`/budgets/${id}`, data);
-
-export const deleteBudget = (id) => 
-  api.delete(`/budgets/${id}`);
-
-export const checkBudgetAlerts = () => 
-  api.get('/budgets/alerts/check');
-
-// ==================== RECURRING ====================
-export const getRecurringTransactions = (isActive) => 
-  api.get('/recurring', { params: { isActive } });
-
-export const getRecurringTransaction = (id) => 
-  api.get(`/recurring/${id}`);
-
-export const createRecurring = (data) => 
-  api.post('/recurring', data);
-
-export const updateRecurring = (id, data) => 
-  api.put(`/recurring/${id}`, data);
-
-export const deleteRecurring = (id) => 
-  api.delete(`/recurring/${id}`);
-
-export const toggleRecurring = (id) => 
-  api.patch(`/recurring/${id}/toggle`);
-
-export const getUpcomingRecurring = (days) => 
-  api.get('/recurring/upcoming/list', { params: { days } });
-
-// ==================== DASHBOARD ====================
-export const getSummary = (filters) => 
-  api.get('/dashboard/summary', { params: filters });
-
-export const getCategoryBreakdown = (filters) => 
-  api.get('/dashboard/category-breakdown', { params: filters });
-
-export const getMonthlyTrends = (months) => 
-  api.get('/dashboard/monthly-trends', { params: { months } });
-
-export const getRecentTransactions = (limit) => 
-  api.get('/dashboard/recent', { params: { limit } });
-
-export const getTopCategories = (params) => 
-  api.get('/dashboard/top-categories', { params });
-
-export const exportCSV = (filters) => 
-  api.get('/dashboard/export/csv', { params: filters, responseType: 'blob' });
-
-// ==================== CATEGORIES ====================
-export const getCategories = (type) => 
-  api.get('/categories', { params: { type } });
-
-export const getCategory = (id) => 
-  api.get(`/categories/${id}`);
-
-export const createCategory = (data) => 
-  api.post('/categories', data);
-
-export const updateCategory = (id, data) => 
-  api.put(`/categories/${id}`, data);
-
-export const deleteCategory = (id) => 
-  api.delete(`/categories/${id}`);
-
-export default api;
+export default API;
