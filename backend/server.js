@@ -3,9 +3,19 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const dotenv = require('dotenv');
 const cron = require('node-cron');
-const { processRecurringTransactions } = require('./utils/scheduler');
 
 dotenv.config();
+
+const { processRecurringTransactions } = require('./utils/scheduler');
+
+// Route imports
+const authRoutes = require('./routes/auth');
+const transactionRoutes = require('./routes/transactions');
+const categoryRoutes = require('./routes/categories');
+const dashboardRoutes = require('./routes/dashboard');
+const budgetRoutes = require('./routes/budgets');
+const recurringRoutes = require('./routes/recurring');
+const analyticsRoutes = require('./routes/analytics'); // ✅ NEW
 
 const app = express();
 
@@ -21,43 +31,44 @@ mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/finsight'
 .then(() => console.log('✅ MongoDB Connected'))
 .catch(err => console.error('❌ MongoDB Connection Error:', err));
 
-// Routes
-app.use('/api/auth', require('./routes/auth'));
-app.use('/api/transactions', require('./routes/transactions'));
-app.use('/api/categories', require('./routes/categories'));
-app.use('/api/dashboard', require('./routes/dashboard'));
-app.use('/api/budgets', require('./routes/budgets'));
-app.use('/api/recurring', require('./routes/recurring'));
+// API Routes
+app.use('/api/auth', authRoutes);
+app.use('/api/transactions', transactionRoutes);
+app.use('/api/categories', categoryRoutes);
+app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/budgets', budgetRoutes);
+app.use('/api/recurring', recurringRoutes);
+app.use('/api/analytics', analyticsRoutes); // ✅ REGISTERED
 
-// Scheduled task for recurring transactions (runs daily at midnight)
+// Scheduled Recurring Task (runs daily at midnight)
 cron.schedule('0 0 * * *', () => {
   console.log('🔄 Running scheduled recurring transactions...');
   processRecurringTransactions();
 });
 
-// Also run on server start for testing
+// Run once on server startup in development only
 if (process.env.NODE_ENV === 'development') {
-  console.log('🔄 Running initial recurring transactions check...');
+  console.log('🔄 Running initial recurring check on startup...');
   processRecurringTransactions();
 }
 
-// Health Check
+// Health Check Endpoint
 app.get('/', (req, res) => {
   res.json({ 
-    message: 'FinSight API v2.0 Running',
+    message: 'FinSight API v2.0 Running ✅',
     features: ['Auth', 'Transactions', 'Budgets', 'Recurring', 'Analytics', 'Dark Mode'],
     status: 'healthy'
   });
 });
 
-// Error handling middleware
+// Global Error Handler
 app.use((err, req, res, next) => {
-  console.error(err.stack);
+  console.error('❌ Server Error:', err.stack);
   res.status(500).json({ message: 'Something went wrong!', error: err.message });
 });
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
-  console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
 });

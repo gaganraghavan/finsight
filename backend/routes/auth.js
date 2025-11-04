@@ -1,6 +1,6 @@
 const express = require('express');
 const jwt = require('jsonwebtoken');
-const User = require('./models/User');
+const User = require('../models/User');
 const Category = require('../models/Category');
 const authMiddleware = require('../middleware/auth');
 

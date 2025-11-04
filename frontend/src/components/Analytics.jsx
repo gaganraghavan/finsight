@@ -8,16 +8,16 @@ import {
 
 ChartJS.register(LineElement, ArcElement, CategoryScale, LinearScale, PointElement, Tooltip, Legend);
 
-export default function Analytics() {
+function Analytics() {
   const [donut, setDonut] = useState([]);
   const [trends, setTrends] = useState([]);
 
   useEffect(() => {
     (async () => {
       const donuts = await getCategoryBreakdown({ type: "expense" });
-      setDonut(donuts.data);
+      setDonut(donuts.data || []);
       const trend = await getMonthlyTrends({ months: 6 });
-      setTrends(trend.data);
+      setTrends(trend.data || []);
     })();
   }, []);
 
@@ -38,11 +38,11 @@ export default function Analytics() {
     <section className="max-w-7xl mx-auto p-4 space-y-6">
       <h1 className="text-2xl font-semibold">Analytics</h1>
       <div className="grid md:grid-cols-2 gap-6">
-        <div className="p-4 rounded-2xl border border-slate-200/40 dark:border-slate-800 bg-white/60 dark:bg-slate-900/60">
+        <div className="p-4 rounded-xl border bg-white dark:bg-slate-900 dark:border-slate-700">
           <h2 className="mb-2 font-medium">Spending by Category</h2>
           <Doughnut data={donutData} />
         </div>
-        <div className="p-4 rounded-2xl border border-slate-200/40 dark:border-slate-800 bg-white/60 dark:bg-slate-900/60">
+        <div className="p-4 rounded-xl border bg-white dark:bg-slate-900 dark:border-slate-700">
           <h2 className="mb-2 font-medium">Monthly Trends</h2>
           <Line data={lineData} />
         </div>
@@ -50,3 +50,5 @@ export default function Analytics() {
     </section>
   );
 }
+
+export default Analytics;

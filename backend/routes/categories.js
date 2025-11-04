@@ -6,15 +6,30 @@ const authMiddleware = require('../middleware/auth');
 const router = express.Router();
 router.use(authMiddleware);
 
-// Get all categories
+// ✅ Get all categories (default + user, no duplicates)
 router.get('/', async (req, res) => {
   try {
     const { type } = req.query;
-    
-    const query = { user: req.userId };
-    if (type) query.type = type;
 
-    const categories = await Category.find(query).sort({ name: 1 });
+    const matchQuery = {
+      $or: [
+        { isDefault: true },       // default global categories
+        { user: req.userId }       // user-created categories
+      ]
+    };
+
+    if (type) matchQuery.type = type;
+
+    let categories = await Category.find(matchQuery).sort({ name: 1 });
+
+    // ✅ Remove duplicates by name (prefer user's version if exists)
+    const unique = {};
+    categories.forEach(cat => {
+      unique[cat.name.toLowerCase()] = cat;
+    });
+
+    categories = Object.values(unique);
+
     res.json(categories);
   } catch (error) {
     console.error('Get categories error:', error);
@@ -27,7 +42,10 @@ router.get('/:id', async (req, res) => {
   try {
     const category = await Category.findOne({
       _id: req.params.id,
-      user: req.userId
+      $or: [
+        { user: req.userId },
+        { isDefault: true }
+      ]
     });
 
     if (!category) {
@@ -47,18 +65,14 @@ router.post('/', async (req, res) => {
     const { name, type, icon, color } = req.body;
 
     if (!name || !type) {
-      return res.status(400).json({ 
-        message: 'Please provide name and type' 
-      });
+      return res.status(400).json({ message: 'Please provide name and type' });
     }
 
     if (!['income', 'expense'].includes(type)) {
-      return res.status(400).json({ 
-        message: 'Type must be either income or expense' 
-      });
+      return res.status(400).json({ message: 'Type must be either income or expense' });
     }
 
-    // Check if category already exists
+    // ✅ Prevent duplicate
     const existingCategory = await Category.findOne({
       user: req.userId,
       name: name.trim(),
@@ -66,9 +80,7 @@ router.post('/', async (req, res) => {
     });
 
     if (existingCategory) {
-      return res.status(400).json({ 
-        message: 'Category already exists' 
-      });
+      return res.status(400).json({ message: 'Category already exists' });
     }
 
     const category = new Category({
@@ -102,7 +114,6 @@ router.put('/:id', async (req, res) => {
       return res.status(404).json({ message: 'Category not found' });
     }
 
-    // Update fields
     if (name) category.name = name.trim();
     if (icon) category.icon = icon;
     if (color) category.color = color;
@@ -127,16 +138,15 @@ router.delete('/:id', async (req, res) => {
       return res.status(404).json({ message: 'Category not found' });
     }
 
-    // Check if category is being used
     const transactionCount = await Transaction.countDocuments({
       user: req.userId,
       category: category.name
     });
 
     if (transactionCount > 0) {
-      return res.status(400).json({ 
-        message: `Cannot delete category. It has ${transactionCount} transaction(s).`,
-        transactionCount 
+      return res.status(400).json({
+        message: `Cannot delete category. It is used in ${transactionCount} transactions.`,
+        transactionCount
       });
     }
 
