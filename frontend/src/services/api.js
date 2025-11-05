@@ -20,12 +20,16 @@ export const me = () => API.get("/auth/me");
 
 // ----- Dashboard -----
 export const getSummary = (params) => API.get("/dashboard/summary", { params });
-export const getCategoryBreakdown = (params) =>
-  API.get("/dashboard/category-breakdown", { params });
-export const getMonthlyTrends = (params) =>
-  API.get("/dashboard/monthly-trends", { params });
 export const getRecentTransactions = (params) =>
   API.get("/dashboard/recent", { params });
+
+// ✅ Corrected Analytics Endpoints
+export const getCategoryBreakdown = (params) =>
+  API.get("/analytics/category-breakdown", { params });
+
+export const getMonthlyTrends = (params) =>
+  API.get("/analytics/monthly-trends", { params });
+
 
 // ----- Transactions -----
 export const listTransactions = (params) => API.get("/transactions", { params });
