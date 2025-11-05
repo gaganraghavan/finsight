@@ -1,4 +1,5 @@
 const express = require('express');
+const mongoose = require('mongoose');
 const Category = require('../models/Category');
 const Transaction = require('../models/Transaction');
 const authMiddleware = require('../middleware/auth');
@@ -6,38 +7,49 @@ const authMiddleware = require('../middleware/auth');
 const router = express.Router();
 router.use(authMiddleware);
 
-// ✅ Get all categories (default + user, no duplicates)
+// ✅ Get categories (default + user-owned) with correct deduping
 router.get('/', async (req, res) => {
   try {
     const { type } = req.query;
 
-    const matchQuery = {
+    const match = {
       $or: [
-        { isDefault: true },       // default global categories
-        { user: req.userId }       // user-created categories
+        { isDefault: true },
+        { user: new mongoose.Types.ObjectId(req.userId) }
       ]
     };
 
-    if (type) matchQuery.type = type;
+    if (type) match.type = type;
 
-    let categories = await Category.find(matchQuery).sort({ name: 1 });
+    let categories = await Category.find(match).sort({ name: 1 }).lean();
 
-    // ✅ Remove duplicates by name (prefer user's version if exists)
-    const unique = {};
-    categories.forEach(cat => {
-      unique[cat.name.toLowerCase()] = cat;
-    });
+    // ✅ Deduplicate by (name + type) pair, while preferring user's copy
+    const map = new Map();
+    for (const c of categories) {
+      const key = `${c.name.toLowerCase()}::${c.type.toLowerCase()}`;
 
-    categories = Object.values(unique);
+      const existing = map.get(key);
+      const isUserOwned = c.user && String(c.user) === String(req.userId);
 
-    res.json(categories);
+      if (!existing) {
+        map.set(key, c);
+      } else {
+        const existingIsUserOwned = existing.user && String(existing.user) === String(req.userId);
+        // Prefer user's version over default
+        if (isUserOwned && !existingIsUserOwned) {
+          map.set(key, c);
+        }
+      }
+    }
+
+    res.json([...map.values()]);
   } catch (error) {
-    console.error('Get categories error:', error);
+    console.error('GET categories error:', error);
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
 
-// Get single category
+// ✅ Get single category
 router.get('/:id', async (req, res) => {
   try {
     const category = await Category.findOne({
@@ -48,42 +60,34 @@ router.get('/:id', async (req, res) => {
       ]
     });
 
-    if (!category) {
-      return res.status(404).json({ message: 'Category not found' });
-    }
-
+    if (!category) return res.status(404).json({ message: 'Category not found' });
     res.json(category);
   } catch (error) {
-    console.error('Get category error:', error);
+    console.error('GET category error:', error);
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
 
-// Create category
+// ✅ Create category
 router.post('/', async (req, res) => {
   try {
     const { name, type, icon, color } = req.body;
 
     if (!name || !type) {
-      return res.status(400).json({ message: 'Please provide name and type' });
+      return res.status(400).json({ message: 'Name and type are required' });
     }
 
-    if (!['income', 'expense'].includes(type)) {
-      return res.status(400).json({ message: 'Type must be either income or expense' });
-    }
-
-    // ✅ Prevent duplicate
-    const existingCategory = await Category.findOne({
+    const exists = await Category.findOne({
       user: req.userId,
       name: name.trim(),
       type
     });
 
-    if (existingCategory) {
+    if (exists) {
       return res.status(400).json({ message: 'Category already exists' });
     }
 
-    const category = new Category({
+    const category = await Category.create({
       user: req.userId,
       name: name.trim(),
       type,
@@ -92,15 +96,14 @@ router.post('/', async (req, res) => {
       isDefault: false
     });
 
-    await category.save();
     res.status(201).json(category);
   } catch (error) {
-    console.error('Create category error:', error);
+    console.error('CREATE category error:', error);
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
 
-// Update category
+// ✅ Update category
 router.put('/:id', async (req, res) => {
   try {
     const { name, icon, color } = req.body;
@@ -121,12 +124,12 @@ router.put('/:id', async (req, res) => {
     await category.save();
     res.json(category);
   } catch (error) {
-    console.error('Update category error:', error);
+    console.error('UPDATE category error:', error);
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
 
-// Delete category
+// ✅ Delete category only if unused
 router.delete('/:id', async (req, res) => {
   try {
     const category = await Category.findOne({
@@ -138,22 +141,23 @@ router.delete('/:id', async (req, res) => {
       return res.status(404).json({ message: 'Category not found' });
     }
 
-    const transactionCount = await Transaction.countDocuments({
+    const used = await Transaction.countDocuments({
       user: req.userId,
       category: category.name
     });
 
-    if (transactionCount > 0) {
+    if (used > 0) {
       return res.status(400).json({
-        message: `Cannot delete category. It is used in ${transactionCount} transactions.`,
-        transactionCount
+        message: `Cannot delete. Used in ${used} transactions.`,
+        used
       });
     }
 
-    await Category.findByIdAndDelete(req.params.id);
+    await category.deleteOne();
     res.json({ message: 'Category deleted successfully' });
+
   } catch (error) {
-    console.error('Delete category error:', error);
+    console.error('DELETE category error:', error);
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 });

@@ -11,7 +11,7 @@ const BudgetSchema = new mongoose.Schema({
     required: true,
     trim: true
   },
-  limit: {
+  limit: {                       // ✅ this is the correct field
     type: Number,
     required: true,
     min: 0
@@ -30,7 +30,7 @@ const BudgetSchema = new mongoose.Schema({
   },
   alertThreshold: {
     type: Number,
-    default: 80, // Alert at 80%
+    default: 80,
     min: 0,
     max: 100
   },

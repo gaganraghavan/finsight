@@ -7,30 +7,87 @@ const authMiddleware = require('../middleware/auth');
 const router = express.Router();
 router.use(authMiddleware);
 
-// Get all budgets
+// ✅ ALERTS FIRST
+router.get('/alerts/check', async (req, res) => {
+  try {
+    const budgets = await Budget.find({ user: req.userId });
+    const alerts = [];
+
+    for (const b of budgets) {
+      const agg = await Transaction.aggregate([
+        {
+          $match: {
+            user: new mongoose.Types.ObjectId(req.userId),
+            category: b.category,
+            type: 'expense',
+          },
+        },
+        { $group: { _id: null, total: { $sum: '$amount' } } },
+      ]);
+
+      const spent = agg.length ? agg[0].total : 0;
+      if (spent >= b.limit) {
+        alerts.push({
+          category: b.category,
+          spent,
+          limit: b.limit,
+          message: 'Budget limit reached',
+        });
+      }
+    }
+
+    res.json(alerts);
+  } catch (error) {
+    console.error('Check alerts error:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
+// ✅ GET all budgets
 router.get('/', async (req, res) => {
   try {
-    const budgets = await Budget.find({ user: req.userId }).sort({ createdAt: -1 });
-    res.json(budgets);
+    const budgets = await Budget.find({ user: req.userId }).lean();
+
+    const results = await Promise.all(
+      budgets.map(async (b) => {
+        const spentAgg = await Transaction.aggregate([
+          {
+            $match: {
+              user: new mongoose.Types.ObjectId(req.userId),
+              category: b.category,
+              type: 'expense',
+            },
+          },
+          { $group: { _id: null, total: { $sum: '$amount' } } },
+        ]);
+
+        const spent = spentAgg.length ? spentAgg[0].total : 0;
+        const percent = b.limit > 0 ? (spent / b.limit) * 100 : 0;
+
+        return { ...b, spent, percent };
+      })
+    );
+
+    res.json(results);
   } catch (error) {
     console.error('Get budgets error:', error);
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
 
-// Create new budget
+// ✅ CREATE
 router.post('/', async (req, res) => {
   try {
-    const { category, limitAmount, period } = req.body;
+    const { category, limit, period } = req.body;
 
-    if (!category || !limitAmount || !period) {
-      return res.status(400).json({ message: 'Please provide all required fields' });
+    if (!category || !limit) {
+      return res.status(400).json({ message: 'Category and limit are required' });
     }
 
     const budget = new Budget({
       user: req.userId,
       category,
-      limitAmount,
+      limit,
       period
     });
 
@@ -42,39 +99,10 @@ router.post('/', async (req, res) => {
   }
 });
 
-// Update budget
-router.put('/:id', async (req, res) => {
-  try {
-    const { category, limitAmount, period } = req.body;
-
-    const budget = await Budget.findOne({
-      _id: req.params.id,
-      user: req.userId
-    });
-
-    if (!budget) {
-      return res.status(404).json({ message: 'Budget not found' });
-    }
-
-    budget.category = category || budget.category;
-    budget.limitAmount = limitAmount || budget.limitAmount;
-    budget.period = period || budget.period;
-
-    await budget.save();
-    res.json(budget);
-  } catch (error) {
-    console.error('Update budget error:', error);
-    res.status(500).json({ message: 'Server error', error: error.message });
-  }
-});
-
-// Delete budget
+// ✅ DELETE
 router.delete('/:id', async (req, res) => {
   try {
-    const budget = await Budget.findOne({
-      _id: req.params.id,
-      user: req.userId
-    });
+    const budget = await Budget.findOne({ _id: req.params.id, user: req.userId });
 
     if (!budget) {
       return res.status(404).json({ message: 'Budget not found' });
@@ -84,47 +112,6 @@ router.delete('/:id', async (req, res) => {
     res.json({ message: 'Budget deleted successfully' });
   } catch (error) {
     console.error('Delete budget error:', error);
-    res.status(500).json({ message: 'Server error', error: error.message });
-  }
-});
-
-// ✅ Budget Alerts (Fixes /api/budgets/alerts/check 404)
-router.get('/alerts/check', async (req, res) => {
-  try {
-    const budgets = await Budget.find({ user: req.userId });
-    if (!budgets || budgets.length === 0) {
-      return res.json([]);
-    }
-
-    const alerts = [];
-
-    for (const budget of budgets) {
-      const spending = await Transaction.aggregate([
-        {
-          $match: {
-            user: new mongoose.Types.ObjectId(req.userId),
-            category: budget.category,
-            type: 'expense'
-          }
-        },
-        { $group: { _id: null, total: { $sum: '$amount' } } }
-      ]);
-
-      const totalSpent = spending.length > 0 ? spending[0].total : 0;
-
-      if (totalSpent >= budget.limitAmount) {
-        alerts.push({
-          category: budget.category,
-          spent: totalSpent,
-          limit: budget.limitAmount
-        });
-      }
-    }
-
-    res.json(alerts);
-
-  } catch (error) {
-    console.error('Check alerts error:', error);
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
