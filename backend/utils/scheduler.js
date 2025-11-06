@@ -39,7 +39,14 @@ const processRecurringTransactions = async () => {
       nextDate: { $lte: now }
     });
 
-    console.log(`Found ${dueTransactions.length} due recurring transactions`);
+    console.log('\n========================================');
+    console.log(`🔄 Processing Recurring Transactions`);
+    console.log(`📅 Date: ${now.toLocaleString()}`);
+    console.log(`📊 Found ${dueTransactions.length} due recurring transactions`);
+    console.log('========================================\n');
+
+    let successCount = 0;
+    let errorCount = 0;
 
     for (const recurring of dueTransactions) {
       try {
@@ -71,13 +78,20 @@ const processRecurringTransactions = async () => {
         recurring.lastProcessed = now;
         await recurring.save();
 
-        console.log(`✅ Processed recurring transaction: ${recurring.name} (₹${recurring.amount})`);
+        successCount++;
+        console.log(`✅ Processed: ${recurring.name}`);
+        console.log(`   Type: ${recurring.type} | Amount: ₹${recurring.amount}`);
+        console.log(`   Next Date: ${recurring.nextDate.toLocaleDateString()}`);
       } catch (error) {
-        console.error(`❌ Error processing recurring transaction ${recurring.name}:`, error);
+        errorCount++;
+        console.error(`❌ Error processing recurring transaction ${recurring.name}:`, error.message);
       }
     }
 
-    console.log(`✅ Completed processing ${dueTransactions.length} recurring transactions`);
+    console.log('\n========================================');
+    console.log(`✅ Success: ${successCount} | ❌ Errors: ${errorCount}`);
+    console.log('========================================\n');
+
     return dueTransactions.length;
   } catch (error) {
     console.error('❌ Error in processRecurringTransactions:', error);
@@ -85,7 +99,60 @@ const processRecurringTransactions = async () => {
   }
 };
 
+/**
+ * Display all active recurring transactions
+ */
+const displayActiveRecurring = async () => {
+  try {
+    const activeRecurring = await RecurringTransaction.find({
+      isActive: true
+    }).sort({ nextDate: 1 });
+
+    console.log('\n╔════════════════════════════════════════════════════════╗');
+    console.log('║         ACTIVE RECURRING TRANSACTIONS                 ║');
+    console.log('╚════════════════════════════════════════════════════════╝\n');
+
+    if (activeRecurring.length === 0) {
+      console.log('📭 No active recurring transactions found.\n');
+      return;
+    }
+
+    console.log(`📊 Total Active: ${activeRecurring.length}\n`);
+
+    activeRecurring.forEach((rec, index) => {
+      const nextDate = new Date(rec.nextDate);
+      const startDate = new Date(rec.startDate);
+      const endDate = rec.endDate ? new Date(rec.endDate) : null;
+      
+      console.log(`${index + 1}. ${rec.name}`);
+      console.log(`   ├─ Type: ${rec.type === 'income' ? '💰' : '💸'} ${rec.type.toUpperCase()}`);
+      console.log(`   ├─ Amount: ₹${rec.amount.toLocaleString()}`);
+      console.log(`   ├─ Category: ${rec.category}`);
+      console.log(`   ├─ Frequency: ${rec.frequency.toUpperCase()}`);
+      console.log(`   ├─ Start Date: ${startDate.toLocaleDateString()}`);
+      console.log(`   ├─ Next Date: ${nextDate.toLocaleDateString()}`);
+      if (endDate) {
+        console.log(`   ├─ End Date: ${endDate.toLocaleDateString()}`);
+      }
+      if (rec.description) {
+        console.log(`   ├─ Description: ${rec.description}`);
+      }
+      if (rec.lastProcessed) {
+        console.log(`   └─ Last Processed: ${new Date(rec.lastProcessed).toLocaleString()}`);
+      } else {
+        console.log(`   └─ Status: Pending first execution`);
+      }
+      console.log('');
+    });
+
+    console.log('════════════════════════════════════════════════════════\n');
+  } catch (error) {
+    console.error('❌ Error displaying active recurring:', error);
+  }
+};
+
 module.exports = { 
   processRecurringTransactions, 
-  calculateNextDate 
+  calculateNextDate,
+  displayActiveRecurring
 };

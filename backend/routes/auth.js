@@ -3,6 +3,9 @@ const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const Category = require('../models/Category');
 const authMiddleware = require('../middleware/auth');
+const { OAuth2Client } = require("google-auth-library");
+const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+
 
 const router = express.Router();
 
@@ -138,5 +141,52 @@ router.get('/me', authMiddleware, async (req, res) => {
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
+// ✅ GOOGLE LOGIN
+router.post("/google-login", async (req, res) => {
+  try {
+    const { credential } = req.body;
+    if (!credential) {
+      return res.status(400).json({ message: "Credential missing" });
+    }
+
+    const ticket = await googleClient.verifyIdToken({
+      idToken: credential,
+      audience: process.env.GOOGLE_CLIENT_ID,
+    });
+
+    const payload = ticket.getPayload();
+    const { sub, name, email, picture } = payload;
+
+    let user = await User.findOne({ email });
+
+    if (!user) {
+      user = await User.create({
+        name,
+        email,
+        googleId: sub,
+        avatar: picture,
+        password: null, // ensures normal login is separate
+      });
+    }
+
+    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, {
+      expiresIn: "7d",
+    });
+
+    res.json({
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        avatar: user.avatar,
+      },
+    });
+  } catch (err) {
+    console.error("Google Login Error:", err);
+    res.status(500).json({ message: "Google login failed" });
+  }
+});
+
 
 module.exports = router;

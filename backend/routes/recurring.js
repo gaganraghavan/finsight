@@ -83,6 +83,21 @@ router.post('/', async (req, res) => {
     });
 
     await recurring.save();
+
+    // ✅ Immediately process if the start date is today or in the past
+    const now = new Date();
+    if (start <= now) {
+      console.log(`\n🔄 New recurring transaction created: ${name}`);
+      console.log(`⏰ Start date is today or in the past - processing immediately...\n`);
+      
+      const { processRecurringTransactions, displayActiveRecurring } = require('../utils/scheduler');
+      await processRecurringTransactions();
+      await displayActiveRecurring();
+    } else {
+      console.log(`\n✅ New recurring transaction created: ${name}`);
+      console.log(`📅 Scheduled to start on: ${start.toLocaleDateString()}\n`);
+    }
+
     res.status(201).json(recurring);
   } catch (error) {
     console.error('Create recurring transaction error:', error);
@@ -123,6 +138,10 @@ router.put('/:id', async (req, res) => {
     if (tags) recurring.tags = tags;
 
     await recurring.save();
+
+    console.log(`\n✏️ Updated recurring transaction: ${recurring.name}`);
+    console.log(`📅 Next execution: ${recurring.nextDate.toLocaleDateString()}\n`);
+
     res.json(recurring);
   } catch (error) {
     console.error('Update recurring transaction error:', error);
@@ -141,6 +160,8 @@ router.delete('/:id', async (req, res) => {
     if (!recurring) {
       return res.status(404).json({ message: 'Recurring transaction not found' });
     }
+
+    console.log(`\n🗑️ Deleted recurring transaction: ${recurring.name}\n`);
 
     res.json({ message: 'Recurring transaction deleted successfully' });
   } catch (error) {
@@ -163,6 +184,9 @@ router.patch('/:id/toggle', async (req, res) => {
 
     recurring.isActive = !recurring.isActive;
     await recurring.save();
+
+    console.log(`\n🔄 Toggled recurring transaction: ${recurring.name}`);
+    console.log(`   Status: ${recurring.isActive ? '✅ ACTIVE' : '⏸️ PAUSED'}\n`);
 
     res.json(recurring);
   } catch (error) {
