@@ -2,17 +2,198 @@
 @tailwind components;
 @tailwind utilities;
 
-/* App background */
-:root { color-scheme: light dark; }
+@layer base {
+  :root {
+    color-scheme: light dark;
+  }
 
-body {
-  @apply bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100;
+  body {
+    @apply bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50 text-slate-900;
+    @apply dark:from-slate-950 dark:via-slate-900 dark:to-indigo-950 dark:text-slate-100;
+    @apply min-h-screen;
+  }
 }
 
-.input {
-  @apply w-full px-3 py-2 rounded-lg border border-slate-300/60 dark:border-slate-700 bg-white/70 dark:bg-slate-900/60 focus:outline-none focus:ring-2 focus:ring-indigo-500/50;
+@layer components {
+  /* Enhanced Input Styles */
+  .input {
+    @apply w-full px-4 py-3 rounded-xl border-2 border-slate-300/60 dark:border-slate-700/60;
+    @apply bg-white dark:bg-slate-900/80 backdrop-blur-sm;
+    @apply focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500;
+    @apply transition-all duration-200;
+    @apply placeholder:text-slate-400 dark:placeholder:text-slate-500;
+    @apply shadow-sm hover:shadow-md;
+  }
+
+  /* Enhanced Button Styles */
+  .btn-primary {
+    @apply px-6 py-3 rounded-xl font-semibold;
+    @apply bg-gradient-to-r from-primary-600 to-primary-500;
+    @apply text-white shadow-lg shadow-primary-500/30;
+    @apply hover:shadow-xl hover:shadow-primary-500/40 hover:scale-105;
+    @apply active:scale-95 transition-all duration-200;
+    @apply disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100;
+  }
+
+  .btn-secondary {
+    @apply px-6 py-3 rounded-xl font-semibold;
+    @apply bg-gradient-to-r from-purple-600 to-pink-600;
+    @apply text-white shadow-lg shadow-purple-500/30;
+    @apply hover:shadow-xl hover:shadow-purple-500/40 hover:scale-105;
+    @apply active:scale-95 transition-all duration-200;
+  }
+
+  .btn-success {
+    @apply px-6 py-3 rounded-xl font-semibold;
+    @apply bg-gradient-to-r from-emerald-600 to-teal-600;
+    @apply text-white shadow-lg shadow-emerald-500/30;
+    @apply hover:shadow-xl hover:shadow-emerald-500/40 hover:scale-105;
+    @apply active:scale-95 transition-all duration-200;
+  }
+
+  .btn-danger {
+    @apply px-6 py-3 rounded-xl font-semibold;
+    @apply bg-gradient-to-r from-rose-600 to-red-600;
+    @apply text-white shadow-lg shadow-rose-500/30;
+    @apply hover:shadow-xl hover:shadow-rose-500/40 hover:scale-105;
+    @apply active:scale-95 transition-all duration-200;
+  }
+
+  .btn-outline {
+    @apply px-6 py-3 rounded-xl font-semibold;
+    @apply border-2 border-primary-600 text-primary-600;
+    @apply hover:bg-primary-600 hover:text-white hover:scale-105;
+    @apply active:scale-95 transition-all duration-200;
+  }
+
+  /* Enhanced Card Styles */
+  .card {
+    @apply p-6 rounded-2xl;
+    @apply bg-white/80 dark:bg-slate-900/80;
+    @apply backdrop-blur-xl border-2 border-slate-200/60 dark:border-slate-800/60;
+    @apply shadow-xl hover:shadow-2xl transition-all duration-300;
+  }
+
+  .card-gradient {
+    @apply p-6 rounded-2xl;
+    @apply bg-gradient-to-br from-white/90 via-white/80 to-blue-50/90;
+    @apply dark:from-slate-900/90 dark:via-slate-900/80 dark:to-indigo-950/90;
+    @apply backdrop-blur-xl border-2 border-slate-200/60 dark:border-slate-800/60;
+    @apply shadow-xl hover:shadow-2xl transition-all duration-300;
+  }
+
+  .glass-card {
+    @apply p-6 rounded-2xl;
+    @apply bg-white/40 dark:bg-slate-900/40;
+    @apply backdrop-blur-2xl border-2 border-white/60 dark:border-slate-800/60;
+    @apply shadow-2xl;
+  }
+
+  /* Badge Styles */
+  .badge {
+    @apply inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wide;
+  }
+
+  .badge-income {
+    @apply bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-lg shadow-emerald-500/30;
+  }
+
+  .badge-expense {
+    @apply bg-gradient-to-r from-rose-500 to-red-500 text-white shadow-lg shadow-rose-500/30;
+  }
+
+  .badge-primary {
+    @apply bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-lg shadow-blue-500/30;
+  }
+
+  .badge-warning {
+    @apply bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg shadow-amber-500/30;
+  }
+
+  /* Table Styles */
+  .table-row {
+    @apply hover:bg-gradient-to-r hover:from-primary-50/50 hover:to-transparent;
+    @apply dark:hover:bg-primary-950/20;
+    @apply transition-all duration-200;
+    @apply animate-slide-up;
+  }
+
+  /* Gradient Text */
+  .gradient-text {
+    @apply bg-gradient-to-r from-primary-600 via-purple-600 to-pink-600;
+    @apply dark:from-primary-400 dark:via-purple-400 dark:to-pink-400;
+    @apply bg-clip-text text-transparent;
+  }
+
+  /* Section Header */
+  .section-header {
+    @apply text-3xl md:text-4xl font-bold gradient-text mb-2;
+  }
+
+  .section-subtitle {
+    @apply text-slate-600 dark:text-slate-400 text-lg;
+  }
+
+  /* Icon Container */
+  .icon-container {
+    @apply p-4 rounded-2xl;
+    @apply bg-gradient-to-br from-primary-500 to-accent-500;
+    @apply text-white shadow-xl shadow-primary-500/30;
+    @apply hover:shadow-2xl hover:shadow-primary-500/40;
+    @apply transition-all duration-300;
+  }
+
+  /* Stat Card */
+  .stat-card {
+    @apply p-6 rounded-2xl;
+    @apply bg-gradient-to-br from-white via-blue-50 to-purple-50;
+    @apply dark:from-slate-900 dark:via-indigo-950 dark:to-purple-950;
+    @apply border-2 border-slate-200/60 dark:border-slate-800/60;
+    @apply shadow-xl hover:shadow-2xl hover:scale-105;
+    @apply transition-all duration-300;
+  }
+
+  /* Progress Bar */
+  .progress-bar {
+    @apply relative h-3 bg-slate-200/60 dark:bg-slate-800/60 rounded-full overflow-hidden;
+  }
+
+  .progress-fill {
+    @apply h-full rounded-full bg-gradient-to-r from-primary-500 via-purple-500 to-pink-500;
+    @apply animate-shimmer;
+  }
 }
 
-.btn-primary {
-  @apply px-3 py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-500 transition;
+@layer utilities {
+  .animate-slide-up {
+    animation: slideUp 0.3s ease-out;
+  }
+
+  .animate-scale-in {
+    animation: scaleIn 0.2s ease-out;
+  }
+
+  .animate-float {
+    animation: float 3s ease-in-out infinite;
+  }
+
+  @keyframes float {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-10px); }
+  }
+
+  @keyframes slideUp {
+    0% { transform: translateY(10px); opacity: 0; }
+    100% { transform: translateY(0); opacity: 1; }
+  }
+
+  @keyframes scaleIn {
+    0% { transform: scale(0.95); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+
+  @keyframes shimmer {
+    0% { background-position: -1000px 0; }
+    100% { background-position: 1000px 0; }
+  }
 }

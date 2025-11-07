@@ -19,6 +19,7 @@ export default {
           700: '#0369a1',
           800: '#075985',
           900: '#0c4a6e',
+          950: '#062c41', // ✅ Added to support bg-primary-950 and hover variants
         },
         accent: {
           50: '#fdf4ff',
