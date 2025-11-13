@@ -1,6 +1,7 @@
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import { useTheme } from "../context/ThemeContext";
-import { LogOut, Moon, Sun, Sparkles } from "lucide-react";
+import { LogOut, Moon, Sun } from "lucide-react";
+import FinSightLogo from "./FinSightLogo"; // Import the new logo
 
 export default function Navbar() {
   const { dark, setDark } = useTheme();
@@ -18,8 +19,8 @@ export default function Navbar() {
         <div className="flex items-center gap-8">
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2 group">
-            <div className="p-2 rounded-xl bg-gradient-to-br from-primary-600 to-purple-600 text-white shadow-lg group-hover:shadow-xl group-hover:scale-110 transition-all duration-200">
-              <Sparkles className="w-6 h-6" />
+            <div className="transition-all duration-200 group-hover:scale-110">
+              <FinSightLogo size={40} />
             </div>
             <span className="text-2xl font-bold bg-gradient-to-r from-primary-600 via-purple-600 to-pink-600 dark:from-primary-400 dark:via-purple-400 dark:to-pink-400 bg-clip-text text-transparent">
               FinSight

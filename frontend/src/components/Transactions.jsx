@@ -1,4 +1,20 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import {
+  Download,
+  Plus,
+  DollarSign,
+  Tag,
+  FileText,
+  Calendar,
+  Search,
+  Filter,
+  ChevronDown,
+  ChevronUp,
+  Edit,
+  Trash2,
+  TrendingDown,
+  TrendingUp,
+} from "lucide-react";
 import {
   listTransactions,
   createTransaction,
@@ -6,14 +22,131 @@ import {
   deleteTransaction,
   listCategories,
 } from "../services/api";
-import { Plus, Edit2, Trash2, DollarSign, Calendar, Tag, FileText, TrendingUp, TrendingDown, Search, Filter, ChevronDown, ChevronUp } from "lucide-react";
+
+const currency = (n) =>
+  (n ?? 0).toLocaleString(undefined, {
+    style: "currency",
+    currency: "INR",
+    minimumFractionDigits: 2,
+  });
+
+const pad2 = (n) => (n < 10 ? `0${n}` : `${n}`);
+const fmtDay = (iso) => {
+  try {
+    const d = new Date(iso);
+    return `${d.getDate()}/${d.getMonth() + 1}/${d.getFullYear()}`;
+  } catch {
+    return iso;
+  }
+};
+const monthKey = (iso) => {
+  const d = new Date(iso);
+  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}`;
+};
+const monthTitle = (key) => {
+  const [y, m] = key.split("-");
+  const date = new Date(Number(y), Number(m) - 1, 1);
+  return date.toLocaleDateString(undefined, { month: "long", year: "numeric" });
+};
+
+const iconBase =
+  "pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5";
+const inputBase =
+  "h-12 w-full rounded-xl border bg-white dark:bg-slate-900 " +
+  "border-slate-200 dark:border-slate-700 px-3 pl-10 text-sm md:text-base " +
+  "placeholder:text-slate-400 dark:placeholder:text-slate-400 " +
+  "focus:outline-none focus:ring-2 focus:ring-blue-500/60";
+
+function MonthBlock({ title, rows, onEdit, onDelete, collapsed, setCollapsed }) {
+  return (
+    <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white/80 dark:bg-slate-900/60 shadow-sm overflow-hidden">
+      <button
+        onClick={() => setCollapsed((c) => !c)}
+        className="w-full flex items-center justify-between px-4 md:px-6 py-4 bg-gradient-to-r from-slate-50 via-slate-50 to-slate-50 dark:from-slate-800/60 dark:via-slate-800/60 dark:to-slate-800/60"
+      >
+        <h3 className="text-lg md:text-xl font-semibold">{title}</h3>
+        {collapsed ? (
+          <ChevronDown className="w-5 h-5 text-slate-500" />
+        ) : (
+          <ChevronUp className="w-5 h-5 text-slate-500" />
+        )}
+      </button>
+
+      {!collapsed && (
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="text-left bg-slate-100/70 dark:bg-slate-800/60 border-t border-b border-slate-200 dark:border-slate-700">
+              <tr>
+                <th className="px-4 md:px-6 py-3">Date</th>
+                <th className="px-4 md:px-6 py-3">Type</th>
+                <th className="px-4 md:px-6 py-3">Category</th>
+                <th className="px-4 md:px-6 py-3">Amount</th>
+                <th className="px-4 md:px-6 py-3">Description</th>
+                <th className="px-4 md:px-6 py-3 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((t) => (
+                <tr
+                  key={t._id}
+                  className="border-b border-slate-100 dark:border-slate-800"
+                >
+                  <td className="px-4 md:px-6 py-3">{fmtDay(t.date)}</td>
+                  <td
+                    className={`px-4 md:px-6 py-3 font-medium ${
+                      t.type === "income"
+                        ? "text-emerald-600"
+                        : "text-rose-500"
+                    }`}
+                  >
+                    {t.type}
+                  </td>
+                  <td className="px-4 md:px-6 py-3">{t.category}</td>
+                  <td className="px-4 md:px-6 py-3 whitespace-nowrap">
+                    {t.type === "income" ? "+" : "-"} {currency(t.amount)}
+                  </td>
+                  <td className="px-4 md:px-6 py-3">{t.description || "—"}</td>
+                  <td className="px-4 md:px-6 py-3 text-right">
+                    <div className="flex items-center justify-end gap-2">
+                      <button
+                        onClick={() => onEdit(t)}
+                        className="flex items-center gap-1 px-2 py-1 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-300 rounded-lg"
+                      >
+                        <Edit className="w-4 h-4" />
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => onDelete(t._id)}
+                        className="flex items-center gap-1 px-2 py-1 bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-300 rounded-lg"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                        Delete
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+              {rows.length === 0 && (
+                <tr>
+                  <td
+                    colSpan={6}
+                    className="px-6 py-8 text-center text-slate-500"
+                  >
+                    No transactions in this month.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function Transactions() {
   const [items, setItems] = useState([]);
-  const [categories, setCategories] = useState([]);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [filterType, setFilterType] = useState("all");
-  const [collapsedMonths, setCollapsedMonths] = useState(new Set());
+  const [cats, setCats] = useState([]);
   const [form, setForm] = useState({
     type: "expense",
     amount: "",
@@ -21,380 +154,401 @@ export default function Transactions() {
     description: "",
     date: new Date().toISOString().slice(0, 10),
   });
+  const [query, setQuery] = useState("");
+  const [typeFilter, setTypeFilter] = useState("all");
+  const [collapsed, setCollapsed] = useState({});
+  const [loading, setLoading] = useState(false);
 
   const load = async () => {
-    const [tRes, cRes] = await Promise.all([
-      listTransactions(),
-      listCategories({ type: form.type }),
-    ]);
-    setItems(tRes.data);
-    setCategories(cRes.data);
+    setLoading(true);
+    const [t, c] = await Promise.all([listTransactions(), listCategories()]);
+    setItems(t.data || []);
+    setCats(c.data || []);
+    setLoading(false);
   };
-
-  useEffect(() => { load(); }, []);
-  
   useEffect(() => {
-    (async () => {
-      const cRes = await listCategories({ type: form.type });
-      setCategories(cRes.data);
-    })();
+    load();
+  }, []);
+
+  // ✅ Reset category when type changes
+  useEffect(() => {
+    setForm((prev) => ({ ...prev, category: "" }));
   }, [form.type]);
 
-  const submit = async (e) => {
+  const onSubmit = async (e) => {
     e.preventDefault();
-    if (form._id) {
-      await updateTransaction(form._id, form);
-    } else {
-      await createTransaction(form);
-    }
-    setForm({ type: "expense", amount: "", category: "", description: "", date: new Date().toISOString().slice(0, 10) });
+    if (!form.amount || !form.category) return;
+    await createTransaction({
+      ...form,
+      amount: Number(form.amount),
+      date: new Date(form.date).toISOString(),
+    });
+    setForm({
+      type: "expense",
+      amount: "",
+      category: "",
+      description: "",
+      date: new Date().toISOString().slice(0, 10),
+    });
     load();
   };
 
-  const edit = (t) => setForm({
-    _id: t._id,
-    type: t.type,
-    amount: t.amount,
-    category: t.category,
-    description: t.description || "",
-    date: t.date?.slice(0, 10),
-  });
-
-  const rupee = (n) => new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR" }).format(n);
-
-  const filteredItems = items.filter(item => {
-    const matchesSearch = item.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         item.category.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesFilter = filterType === "all" || item.type === filterType;
-    return matchesSearch && matchesFilter;
-  });
-
-  // Group transactions by month
-  const groupByMonth = (transactions) => {
-    const groups = {};
-    
-    transactions.forEach(transaction => {
-      const date = new Date(transaction.date);
-      const monthYear = date.toLocaleDateString('en-US', { year: 'numeric', month: 'long' });
-      
-      if (!groups[monthYear]) {
-        groups[monthYear] = {
-          transactions: [],
-          totalIncome: 0,
-          totalExpense: 0,
-          date: date
-        };
-      }
-      
-      groups[monthYear].transactions.push(transaction);
-      if (transaction.type === 'income') {
-        groups[monthYear].totalIncome += transaction.amount;
-      } else {
-        groups[monthYear].totalExpense += transaction.amount;
-      }
-    });
-    
-    // Sort by date (newest first)
-    return Object.entries(groups).sort((a, b) => b[1].date - a[1].date);
+  const onDelete = async (id) => {
+    if (!confirm("Delete this transaction?")) return;
+    await deleteTransaction(id);
+    load();
   };
 
-  const groupedTransactions = groupByMonth(filteredItems);
-
-  const toggleMonth = (monthYear) => {
-    setCollapsedMonths(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(monthYear)) {
-        newSet.delete(monthYear);
-      } else {
-        newSet.add(monthYear);
-      }
-      return newSet;
-    });
+  const onEdit = async (t) => {
+    const amount = prompt("New amount:", t.amount);
+    if (!amount) return;
+    await updateTransaction(t._id, { amount: Number(amount) });
+    load();
   };
+
+  const filtered = useMemo(() => {
+    const q = query.toLowerCase();
+    return items
+      .filter((i) =>
+        typeFilter === "all" ? true : i.type === typeFilter.toLowerCase()
+      )
+      .filter(
+        (i) =>
+          i.category?.toLowerCase().includes(q) ||
+          i.description?.toLowerCase().includes(q)
+      )
+      .sort((a, b) => new Date(b.date) - new Date(a.date));
+  }, [items, query, typeFilter]);
+
+  const grouped = useMemo(() => {
+    const by = {};
+    for (const t of filtered) {
+      const k = monthKey(t.date);
+      if (!by[k]) by[k] = [];
+      by[k].push(t);
+    }
+    return Object.entries(by)
+      .sort(([a], [b]) => (a > b ? -1 : 1))
+      .map(([k, rows]) => ({ key: k, title: monthTitle(k), rows }));
+  }, [filtered]);
+
+  const exportPDF = async () => {
+  let jsPDF, autoTable;
+  try {
+    const mod = await import("jspdf");
+    jsPDF = mod.jsPDF || mod.default || mod;
+    const auto = await import("jspdf-autotable");
+    autoTable = auto.default || auto;
+  } catch {
+    alert("Please install jspdf and jspdf-autotable.");
+    return;
+  }
+
+  const doc = new jsPDF({
+    orientation: "portrait",
+    unit: "pt",
+    format: "a4",
+  });
+
+  // === PAGE BACKGROUND ===
+  doc.setFillColor(248, 250, 255); // light gray background
+  doc.rect(0, 0, 595, 842, "F");
+
+  // === HEADER GRADIENT BAR ===
+  const gradientStart = [37, 99, 235]; // blue-600
+  const gradientEnd = [147, 51, 234];  // purple-600
+  const gradientHeight = 70;
+
+  for (let i = 0; i < gradientHeight; i++) {
+    const r = Math.round(
+      gradientStart[0] + ((gradientEnd[0] - gradientStart[0]) * i) / gradientHeight
+    );
+    const g = Math.round(
+      gradientStart[1] + ((gradientEnd[1] - gradientStart[1]) * i) / gradientHeight
+    );
+    const b = Math.round(
+      gradientStart[2] + ((gradientEnd[2] - gradientStart[2]) * i) / gradientHeight
+    );
+    doc.setDrawColor(r, g, b);
+    doc.setFillColor(r, g, b);
+    doc.rect(0, i, 595, 1, "F");
+  }
+
+  // === HEADER TEXT ===
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(20);
+  doc.setTextColor(255);
+  doc.text("FinSight Transactions Report", 40, 45);
+
+  doc.setFontSize(11);
+  doc.setFont("helvetica", "normal");
+  doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 40, 63);
+
+  let y = 100;
+  let totalIncome = 0;
+  let totalExpense = 0;
+
+  // === TRANSACTIONS ===
+  for (const g of grouped) {
+    doc.setFontSize(14);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(30, 41, 59);
+    doc.text(g.title, 40, y);
+    y += 10;
+
+    const body = g.rows.map((r) => {
+      if (r.type === "income") totalIncome += r.amount;
+      else totalExpense += r.amount;
+      return [
+        fmtDay(r.date),
+        r.type.toUpperCase(),
+        r.category,
+        `INR ${r.amount.toLocaleString()}`,
+        r.description || "",
+      ];
+    });
+
+    autoTable(doc, {
+      startY: y + 5,
+      head: [["Date", "Type", "Category", "Amount", "Description"]],
+      body,
+      theme: "grid",
+      styles: {
+        fontSize: 10,
+        cellPadding: 6,
+        font: "helvetica",
+        lineColor: [230, 230, 230],
+      },
+      headStyles: {
+        fillColor: [59, 130, 246], // blue-500
+        textColor: 255,
+        halign: "center",
+        fontStyle: "bold",
+      },
+      alternateRowStyles: { fillColor: [245, 247, 250] },
+      columnStyles: {
+        3: { halign: "right", font: "courier", fontStyle: "bold" },
+        4: { cellWidth: 150 },
+      },
+      margin: { left: 40, right: 40 },
+    });
+
+    y = doc.lastAutoTable.finalY + 30;
+  }
+
+  // === SUMMARY ===
+  const balance = totalIncome - totalExpense;
+  const boxY = y + 20;
+
+  doc.setFillColor(240, 245, 255);
+  doc.roundedRect(40, boxY, 520, 130, 8, 8, "F");
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(14);
+  doc.setTextColor(30, 41, 59);
+  doc.text("Summary", 50, boxY + 25);
+
+  doc.setFont("courier", "bold");
+  doc.setFontSize(12);
+
+  // Income
+  doc.setTextColor(16, 185, 129); // green-500
+  doc.text(`Total Income:   INR ${totalIncome.toLocaleString()}`, 60, boxY + 60);
+
+  // Expense
+  doc.setTextColor(239, 68, 68); // red-500
+  doc.text(`Total Expense:  INR ${totalExpense.toLocaleString()}`, 60, boxY + 85);
+
+  // Balance
+  if (balance >= 0) doc.setTextColor(59, 130, 246); // blue for positive
+  else doc.setTextColor(239, 68, 68); // red for negative
+  doc.text(`Net Balance:    INR ${balance.toLocaleString()}`, 60, boxY + 110);
+
+  // === FOOTER ===
+  doc.setFont("helvetica", "italic");
+  doc.setFontSize(9);
+  doc.setTextColor(120);
+  doc.text("Generated by FinSight • finsight.ai", 40, 820);
+
+  doc.save("FinSight_Transactions_Report.pdf");
+};
+
+
 
   return (
-    <section className="max-w-7xl mx-auto p-6 space-y-8 animate-slide-up">
-      {/* Header */}
+    <section className="max-w-7xl mx-auto p-6 space-y-8">
+      {/* HEADER */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-primary-600 to-accent-600 dark:from-primary-400 dark:to-accent-400 bg-clip-text text-transparent mb-2">
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-500 to-purple-600 bg-clip-text text-transparent">
             Transactions
           </h1>
-          <p className="text-slate-600 dark:text-slate-400">Manage your income and expenses</p>
+          <p className="text-slate-600 dark:text-slate-400">
+            Manage your income and expenses
+          </p>
         </div>
+        <button
+          onClick={exportPDF}
+          className="inline-flex items-center gap-2 rounded-xl px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white shadow"
+        >
+          <Download className="w-4 h-4" />
+          Export PDF
+        </button>
       </div>
 
-      {/* Add/Edit Form */}
-      <form onSubmit={submit} className="card-gradient">
-        <div className="flex items-center gap-3 mb-6">
-          <div className="p-3 rounded-xl bg-gradient-to-br from-primary-500 to-accent-500 text-white shadow-lg shadow-primary-500/30">
+      {/* ADD NEW */}
+      <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white/80 dark:bg-slate-900/60 shadow-sm p-6">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white shadow">
             <Plus className="w-5 h-5" />
           </div>
-          <h2 className="text-xl font-bold">
-            {form._id ? "Edit Transaction" : "Add New Transaction"}
-          </h2>
+          <h2 className="text-xl md:text-2xl font-bold">Add New Transaction</h2>
         </div>
 
-        <div className="grid md:grid-cols-5 gap-4">
-          {/* Type Select */}
+        <form
+          onSubmit={onSubmit}
+          className="grid grid-cols-1 md:grid-cols-[220px_1fr_1fr_1.5fr_220px_auto] gap-3"
+        >
+          {/* Type */}
           <div className="relative">
+            {form.type === "expense" ? (
+              <TrendingDown
+                className={`${iconBase} text-rose-500 dark:text-rose-400`}
+              />
+            ) : (
+              <TrendingUp
+                className={`${iconBase} text-emerald-500 dark:text-emerald-400`}
+              />
+            )}
             <select
+              className={`${inputBase} appearance-none`}
               value={form.type}
               onChange={(e) => setForm({ ...form, type: e.target.value })}
-              className="input pl-12 appearance-none cursor-pointer"
             >
               <option value="expense">Expense</option>
               <option value="income">Income</option>
             </select>
-            {form.type === "income" ? (
-              <TrendingUp className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-success-600" />
-            ) : (
-              <TrendingDown className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-danger-600" />
-            )}
           </div>
 
-          {/* Amount Input */}
+          {/* Amount */}
           <div className="relative">
+            <DollarSign className={`${iconBase} text-sky-500 dark:text-sky-400`} />
             <input
               type="number"
+              className={inputBase}
               placeholder="Amount"
               value={form.amount}
-              onChange={(e) => setForm({ ...form, amount: +e.target.value })}
-              className="input pl-12"
+              onChange={(e) => setForm({ ...form, amount: e.target.value })}
               required
             />
-            <DollarSign className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-primary-600" />
           </div>
 
-          {/* Category Select */}
+          {/* ✅ Category Filtered by Type */}
           <div className="relative">
+            <Tag className={`${iconBase} text-purple-500 dark:text-purple-400`} />
             <select
+              className={`${inputBase} appearance-none`}
               value={form.category}
               onChange={(e) => setForm({ ...form, category: e.target.value })}
-              className="input pl-12 appearance-none cursor-pointer"
               required
             >
               <option value="">Select Category</option>
-              {categories.map((c) => (
-                <option key={c._id} value={c.name}>
-                  {c.name}
-                </option>
-              ))}
+              {cats
+                .filter((c) => c.type === form.type.toLowerCase())
+                .map((c) => (
+                  <option key={c._id} value={c.name}>
+                    {c.name}
+                  </option>
+                ))}
             </select>
-            <Tag className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-accent-600" />
           </div>
 
-          {/* Description Input */}
+          {/* Description */}
           <div className="relative">
+            <FileText
+              className={`${iconBase} text-orange-500 dark:text-orange-400`}
+            />
             <input
+              className={inputBase}
+              placeholder="Description"
               value={form.description}
               onChange={(e) => setForm({ ...form, description: e.target.value })}
-              placeholder="Description"
-              className="input pl-12"
             />
-            <FileText className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-warning-600" />
           </div>
 
-          {/* Date & Submit */}
-          <div className="flex gap-2">
-            <div className="relative flex-1">
-              <input
-                type="date"
-                value={form.date}
-                onChange={(e) => setForm({ ...form, date: e.target.value })}
-                className="input pl-12"
-              />
-              <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-success-600" />
-            </div>
-            <button className={form._id ? "btn-secondary" : "btn-primary"}>
-              {form._id ? "Update" : "Add"}
-            </button>
+          {/* Date */}
+          <div className="relative">
+            <Calendar
+              className={`${iconBase} text-emerald-500 dark:text-emerald-400`}
+            />
+            <input
+              type="date"
+              className={inputBase}
+              value={form.date}
+              onChange={(e) => setForm({ ...form, date: e.target.value })}
+              required
+            />
           </div>
-        </div>
-      </form>
 
-      {/* Search and Filter */}
-      <div className="card flex flex-wrap gap-4 items-center">
-        <div className="relative flex-1 min-w-[200px]">
-          <input
-            type="text"
-            placeholder="Search transactions..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="input pl-12"
-          />
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-        </div>
+          <button className="h-12 rounded-xl px-6 bg-gradient-to-r from-sky-500 to-blue-600 text-white shadow hover:brightness-95">
+            Add
+          </button>
+        </form>
+      </div>
 
-        <div className="flex gap-2 items-center">
-          <Filter className="w-5 h-5 text-slate-600 dark:text-slate-400" />
-          <button
-            onClick={() => setFilterType("all")}
-            className={`px-4 py-2 rounded-xl font-medium transition-all duration-200 ${
-              filterType === "all"
-                ? "bg-gradient-to-r from-primary-600 to-primary-500 text-white shadow-lg"
-                : "bg-slate-100 dark:bg-slate-800 hover:scale-105"
-            }`}
-          >
-            All
-          </button>
-          <button
-            onClick={() => setFilterType("income")}
-            className={`px-4 py-2 rounded-xl font-medium transition-all duration-200 ${
-              filterType === "income"
-                ? "bg-gradient-to-r from-success-600 to-success-500 text-white shadow-lg"
-                : "bg-slate-100 dark:bg-slate-800 hover:scale-105"
-            }`}
-          >
-            Income
-          </button>
-          <button
-            onClick={() => setFilterType("expense")}
-            className={`px-4 py-2 rounded-xl font-medium transition-all duration-200 ${
-              filterType === "expense"
-                ? "bg-gradient-to-r from-danger-600 to-danger-500 text-white shadow-lg"
-                : "bg-slate-100 dark:bg-slate-800 hover:scale-105"
-            }`}
-          >
-            Expense
-          </button>
+      {/* SEARCH + FILTER */}
+      <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white/80 dark:bg-slate-900/60 shadow-sm p-4">
+        <div className="flex flex-col md:flex-row items-center justify-between gap-3">
+          <div className="relative flex-1">
+            <Search className={`${iconBase} text-slate-400 dark:text-slate-300`} />
+            <input
+              className={inputBase}
+              placeholder="Search transactions..."
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <Filter className="w-4 h-4 text-slate-400" />
+            {["all", "income", "expense"].map((type) => (
+              <button
+                key={type}
+                onClick={() => setTypeFilter(type)}
+                className={`px-4 py-2 rounded-xl text-sm ${
+                  typeFilter === type
+                    ? "bg-blue-600 text-white"
+                    : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300"
+                }`}
+              >
+                {type.charAt(0).toUpperCase() + type.slice(1)}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
-      {/* Grouped Transactions */}
-      <div className="space-y-6">
-        {groupedTransactions.length === 0 ? (
-          <div className="card text-center py-12">
-            <p className="text-slate-500 dark:text-slate-400 text-lg">No transactions found</p>
-          </div>
-        ) : (
-          groupedTransactions.map(([monthYear, data]) => {
-            const isCollapsed = collapsedMonths.has(monthYear);
-            const netAmount = data.totalIncome - data.totalExpense;
-            
-            return (
-              <div key={monthYear} className="card-gradient overflow-hidden">
-                {/* Month Header */}
-                <button
-                  onClick={() => toggleMonth(monthYear)}
-                  className="w-full flex items-center justify-between p-6 hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-colors"
-                >
-                  <div className="flex items-center gap-4">
-                    <div className="p-3 rounded-xl bg-gradient-to-br from-primary-500 to-accent-500 text-white shadow-lg">
-                      <Calendar className="w-6 h-6" />
-                    </div>
-                    <div className="text-left">
-                      <h3 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
-                        {monthYear}
-                      </h3>
-                      <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
-                        {data.transactions.length} transaction{data.transactions.length !== 1 ? 's' : ''}
-                      </p>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center gap-6">
-                    <div className="text-right space-y-1">
-                      <div className="flex items-center gap-4">
-                        <div>
-                          <p className="text-xs text-slate-500 dark:text-slate-400">Income</p>
-                          <p className="text-lg font-bold text-success-600">
-                            +{rupee(data.totalIncome)}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-xs text-slate-500 dark:text-slate-400">Expense</p>
-                          <p className="text-lg font-bold text-danger-600">
-                            -{rupee(data.totalExpense)}
-                          </p>
-                        </div>
-                        <div className="pl-4 border-l-2 border-slate-200 dark:border-slate-700">
-                          <p className="text-xs text-slate-500 dark:text-slate-400">Net</p>
-                          <p className={`text-lg font-bold ${netAmount >= 0 ? 'text-success-600' : 'text-danger-600'}`}>
-                            {netAmount >= 0 ? '+' : ''}{rupee(netAmount)}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    {isCollapsed ? (
-                      <ChevronDown className="w-6 h-6 text-slate-400" />
-                    ) : (
-                      <ChevronUp className="w-6 h-6 text-slate-400" />
-                    )}
-                  </div>
-                </button>
-
-                {/* Transactions Table */}
-                {!isCollapsed && (
-                  <div className="overflow-x-auto border-t-2 border-slate-200/60 dark:border-slate-800/60">
-                    <table className="w-full text-sm">
-                      <thead className="bg-gradient-to-r from-slate-100/80 to-slate-50/80 dark:from-slate-800/80 dark:to-slate-900/80">
-                        <tr>
-                          <th className="px-6 py-4 text-left font-semibold text-slate-700 dark:text-slate-300">Date</th>
-                          <th className="px-6 py-4 text-left font-semibold text-slate-700 dark:text-slate-300">Type</th>
-                          <th className="px-6 py-4 text-left font-semibold text-slate-700 dark:text-slate-300">Category</th>
-                          <th className="px-6 py-4 text-left font-semibold text-slate-700 dark:text-slate-300">Amount</th>
-                          <th className="px-6 py-4 text-left font-semibold text-slate-700 dark:text-slate-300">Description</th>
-                          <th className="px-6 py-4 text-right font-semibold text-slate-700 dark:text-slate-300">Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody className="bg-white/60 dark:bg-slate-900/60">
-                        {data.transactions.map((t, idx) => (
-                          <tr key={t._id} className="table-row group border-t border-slate-100/40 dark:border-slate-800/60" style={{ animationDelay: `${idx * 30}ms` }}>
-                            <td className="px-6 py-4 font-medium">
-                              {new Date(t.date).toLocaleDateString('en-US', { day: 'numeric', month: 'short' })}
-                            </td>
-                            <td className="px-6 py-4">
-                              <span className={`badge ${t.type === "income" ? "badge-income" : "badge-expense"}`}>
-                                {t.type}
-                              </span>
-                            </td>
-                            <td className="px-6 py-4">
-                              <span className="px-3 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 font-medium">
-                                {t.category}
-                              </span>
-                            </td>
-                            <td className={`px-6 py-4 font-bold ${
-                              t.type === "income" ? "text-success-600" : "text-danger-600"
-                            }`}>
-                              {t.type === "income" ? "+" : "-"}{rupee(t.amount)}
-                            </td>
-                            <td className="px-6 py-4 text-slate-600 dark:text-slate-400">
-                              {t.description || "-"}
-                            </td>
-                            <td className="px-6 py-4">
-                              <div className="flex justify-end gap-2">
-                                <button
-                                  onClick={() => edit(t)}
-                                  className="p-2 rounded-lg bg-primary-100 text-primary-700 dark:bg-primary-900/30 dark:text-primary-300 hover:scale-110 hover:shadow-lg transition-all duration-200"
-                                  title="Edit"
-                                >
-                                  <Edit2 className="w-4 h-4" />
-                                </button>
-                                <button
-                                  onClick={async () => {
-                                    await deleteTransaction(t._id);
-                                    load();
-                                  }}
-                                  className="p-2 rounded-lg bg-danger-100 text-danger-700 dark:bg-danger-900/30 dark:text-danger-300 hover:scale-110 hover:shadow-lg transition-all duration-200"
-                                  title="Delete"
-                                >
-                                  <Trash2 className="w-4 h-4" />
-                                </button>
-                              </div>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </div>
-            );
-          })
-        )}
-      </div>
+      {/* TRANSACTIONS */}
+      {loading ? (
+        <p className="text-center text-slate-500 py-8">Loading...</p>
+      ) : grouped.length === 0 ? (
+        <p className="text-center text-slate-500 py-8">No transactions yet.</p>
+      ) : (
+        <div className="space-y-6">
+          {grouped.map((g) => (
+            <MonthBlock
+              key={g.key}
+              title={g.title}
+              rows={g.rows}
+              onEdit={onEdit}
+              onDelete={onDelete}
+              collapsed={!!collapsed[g.key]}
+              setCollapsed={(fn) =>
+                setCollapsed((p) => ({ ...p, [g.key]: fn(p[g.key]) }))
+              }
+            />
+          ))}
+        </div>
+      )}
     </section>
   );
 }

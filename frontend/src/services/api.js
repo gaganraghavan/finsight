@@ -1,10 +1,10 @@
 import axios from "axios";
 
 const API = axios.create({
-  baseURL: "http://localhost:5000/api",
+  baseURL: "http://localhost:5001/api",
 });
 
-// attach token
+// Attach token to every request
 API.interceptors.request.use((config) => {
   const token = localStorage.getItem("token");
   if (token) config.headers.Authorization = `Bearer ${token}`;
@@ -14,45 +14,86 @@ API.interceptors.request.use((config) => {
 // ----- Auth -----
 export const login = (email, password) =>
   API.post("/auth/login", { email, password });
+
 export const signup = (name, email, password) =>
   API.post("/auth/register", { name, email, password });
+
 export const me = () => API.get("/auth/me");
 
+export const deleteAccount = () => API.delete("/auth/delete");
+
 // ----- Dashboard -----
-export const getSummary = (params) => API.get("/dashboard/summary", { params });
+export const getSummary = (params) =>
+  API.get("/dashboard/summary", { params });
+
 export const getRecentTransactions = (params) =>
   API.get("/dashboard/recent", { params });
 
-// ✅ Corrected Analytics Endpoints
+// ----- Analytics -----
 export const getCategoryBreakdown = (params) =>
   API.get("/analytics/category-breakdown", { params });
 
 export const getMonthlyTrends = (params) =>
   API.get("/analytics/monthly-trends", { params });
 
-
 // ----- Transactions -----
-export const listTransactions = (params) => API.get("/transactions", { params });
-export const createTransaction = (data) => API.post("/transactions", data);
+export const listTransactions = (params) =>
+  API.get("/transactions", { params });
+
+export const createTransaction = (data) =>
+  API.post("/transactions", data);
+
 export const updateTransaction = (id, data) =>
   API.put(`/transactions/${id}`, data);
+
 export const deleteTransaction = (id) =>
   API.delete(`/transactions/${id}`);
 
 // ----- Categories -----
 export const listCategories = (params) =>
   API.get("/categories", { params });
-export const createCategory = (data) => API.post("/categories", data);
+
+export const createCategory = (data) =>
+  API.post("/categories", data);
+
+export const deleteCategory = (id) =>
+  API.delete(`/categories/${id}`);
 
 // ----- Budgets -----
 export const listBudgets = () => API.get("/budgets");
-export const createBudget = (data) => API.post("/budgets", data);
-export const deleteBudget = (id) => API.delete(`/budgets/${id}`);
-export const checkBudgetAlerts = () => API.get("/budgets/alerts/check");
+
+export const createBudget = (data) =>
+  API.post("/budgets", data);
+
+export const deleteBudget = (id) =>
+  API.delete(`/budgets/${id}`);
+
+export const checkBudgetAlerts = () =>
+  API.get("/budgets/alerts/check");
 
 // ----- Recurring -----
-export const listRecurring = (params) => API.get("/recurring", { params });
-export const createRecurring = (data) => API.post("/recurring", data);
-export const toggleRecurring = (id) => API.patch(`/recurring/${id}/toggle`);
+export const listRecurring = (params) =>
+  API.get("/recurring", { params });
+
+export const createRecurring = (data) =>
+  API.post("/recurring", data);
+
+export const toggleRecurring = (id) =>
+  API.patch(`/recurring/${id}/toggle`);
+
+// ----- Avatar Upload (FIXED) -----
+export const uploadAvatar = (file) => {
+  const formData = new FormData();
+  formData.append("avatar", file);
+
+  return API.post("/upload/profile-photo", formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+};
+
+export const exportTransactionsPDF = () =>
+  API.get("/export/transactions/pdf", { responseType: "blob" });
+
+
 
 export default API;

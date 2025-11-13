@@ -3,8 +3,14 @@ import { listRecurring, createRecurring, toggleRecurring } from "../services/api
 
 export default function Recurring() {
   const [items, setItems] = useState([]);
+
   const [form, setForm] = useState({
-    name: "", type: "expense", amount: "", category: "", frequency: "monthly", startDate: new Date().toISOString().slice(0,10)
+    name: "",
+    type: "expense",
+    amount: "",
+    category: "",
+    frequency: "monthly",
+    startDate: new Date().toISOString().slice(0, 10),
   });
 
   const load = async () => {
@@ -12,38 +18,129 @@ export default function Recurring() {
     setItems(res.data);
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    load();
+  }, []);
 
   const submit = async (e) => {
     e.preventDefault();
-    await createRecurring(form);
-    setForm({ name:"", type:"expense", amount:"", category:"", frequency:"monthly", startDate:new Date().toISOString().slice(0,10) });
+
+    const payload = {
+      name: form.name,
+      type: form.type,
+      amount: Number(form.amount),
+      category: form.category,
+      frequency: form.frequency,
+      startDate: new Date(form.startDate).toISOString(),
+    };
+
+    await createRecurring(payload);
+
+    setForm({
+      name: "",
+      type: "expense",
+      amount: "",
+      category: "",
+      frequency: "monthly",
+      startDate: new Date().toISOString().slice(0, 10),
+    });
+
     load();
   };
 
   return (
-    <section className="max-w-7xl mx-auto p-4 space-y-6">
-      <h1 className="text-2xl font-semibold">Recurring</h1>
+    <section className="max-w-7xl mx-auto p-6 space-y-6">
+      <h1 className="text-3xl font-bold mb-2">Recurring</h1>
 
-      <form onSubmit={submit} className="grid md:grid-cols-6 gap-3 p-4 rounded-2xl bg-white/60 dark:bg-slate-900/60 border">
-        <input className="input" placeholder="Name" value={form.name} onChange={(e)=>setForm({...form,name:e.target.value})} required/>
-        <select className="input" value={form.type} onChange={(e)=>setForm({...form,type:e.target.value})}>
-          <option value="expense">Expense</option><option value="income">Income</option>
+      {/* ✅ FORM (Glass + Light/Dark compatible) */}
+      <form
+        autoComplete="off"
+        onSubmit={submit}
+        className="
+          grid md:grid-cols-7 gap-3 p-4 rounded-2xl 
+          bg-white/70 dark:bg-slate-900/30 
+          border border-slate-300 dark:border-slate-700 
+          backdrop-blur-xl shadow-sm
+        "
+      >
+        {/* Name */}
+        <input
+          className="input h-full"
+          placeholder="Name"
+          value={form.name}
+          onChange={(e) => setForm({ ...form, name: e.target.value })}
+          required
+        />
+
+        {/* Type */}
+        <select
+          className="input h-full"
+          value={form.type}
+          onChange={(e) => setForm({ ...form, type: e.target.value })}
+        >
+          <option value="expense">Expense</option>
+          <option value="income">Income</option>
         </select>
-        <input className="input" type="number" placeholder="Amount" value={form.amount} onChange={(e)=>setForm({...form,amount:+e.target.value})} required/>
-        <input className="input" placeholder="Category" value={form.category} onChange={(e)=>setForm({...form,category:e.target.value})} required/>
-        <select className="input" value={form.frequency} onChange={(e)=>setForm({...form,frequency:e.target.value})}>
-          <option>daily</option><option>weekly</option><option>monthly</option><option>yearly</option>
+
+        {/* Amount */}
+        <input
+          className="input h-full"
+          type="number"
+          placeholder="Amount"
+          value={form.amount}
+          onChange={(e) => setForm({ ...form, amount: e.target.value })}
+          required
+        />
+
+        {/* Category */}
+        <input
+          className="input h-full"
+          placeholder="Category"
+          value={form.category}
+          onChange={(e) => setForm({ ...form, category: e.target.value })}
+          required
+        />
+
+        {/* Frequency */}
+        <select
+          className="input h-full"
+          value={form.frequency}
+          onChange={(e) => setForm({ ...form, frequency: e.target.value })}
+        >
+          <option value="daily">Daily</option>
+          <option value="weekly">Weekly</option>
+          <option value="monthly">Monthly</option>
+          <option value="yearly">Yearly</option>
         </select>
-        <div className="flex gap-2">
-          <input className="input flex-1" type="date" value={form.startDate} onChange={(e)=>setForm({...form,startDate:e.target.value})}/>
-          <button className="btn-primary min-w-24">Add</button>
-        </div>
+
+        {/* Date */}
+        <input
+          className="input h-full"
+          type="date"
+          value={form.startDate}
+          onChange={(e) => setForm({ ...form, startDate: e.target.value })}
+        />
+
+        <button className="btn-primary w-full h-full">Add</button>
       </form>
 
-      <div className="rounded-2xl border overflow-hidden">
-        <table className="w-full text-sm bg-white/60 dark:bg-slate-900/60">
-          <thead className="text-left border-b">
+      {/* ✅ TABLE (Light + Dark Mode Styled) */}
+      <div
+        className="
+          rounded-2xl overflow-hidden 
+          bg-white/70 dark:bg-slate-900/30 
+          backdrop-blur-xl shadow-sm border 
+          border-slate-300 dark:border-slate-700
+        "
+      >
+        <table className="w-full text-sm">
+          <thead
+            className="
+              text-left border-b 
+              border-slate-300 dark:border-slate-700 
+              bg-slate-100 dark:bg-slate-800/50
+            "
+          >
             <tr>
               <th className="p-3">Next Date</th>
               <th className="p-3">Name</th>
@@ -53,16 +150,32 @@ export default function Recurring() {
               <th className="p-3">Active</th>
             </tr>
           </thead>
+
           <tbody>
             {items.map((r) => (
-              <tr key={r._id} className="border-b">
-                <td className="p-3">{new Date(r.nextDate).toLocaleDateString()}</td>
+              <tr
+                key={r._id}
+                className="border-b border-slate-300/60 dark:border-slate-800/40"
+              >
+                <td className="p-3">
+                  {new Date(r.nextDate).toLocaleDateString()}
+                </td>
                 <td className="p-3">{r.name}</td>
-                <td className="p-3">{r.type}</td>
+                <td className="p-3 capitalize">{r.type}</td>
                 <td className="p-3">{r.category}</td>
                 <td className="p-3">₹{r.amount}</td>
                 <td className="p-3">
-                  <button className={`px-2 py-1 rounded ${r.isActive ? "bg-emerald-500/20 text-emerald-700" : "bg-slate-500/20"}`} onClick={async()=>{ await toggleRecurring(r._id); load(); }}>
+                  <button
+                    className={`px-3 py-1 rounded-lg text-xs font-semibold transition ${
+                      r.isActive
+                        ? "bg-emerald-500/20 text-emerald-700 dark:text-emerald-300"
+                        : "bg-slate-400/20 text-slate-700 dark:text-slate-300"
+                    }`}
+                    onClick={async () => {
+                      await toggleRecurring(r._id);
+                      load();
+                    }}
+                  >
                     {r.isActive ? "Active" : "Paused"}
                   </button>
                 </td>

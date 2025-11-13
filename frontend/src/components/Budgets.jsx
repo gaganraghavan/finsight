@@ -7,11 +7,9 @@ import {
   listCategories,
 } from "../services/api";
 import {
-  Wallet,
   AlertTriangle,
   Plus,
   Trash2,
-  TrendingUp,
   PieChart,
 } from "lucide-react";
 
@@ -25,32 +23,43 @@ export default function Budgets() {
     period: "monthly",
   });
 
+  // ✅ Load data from backend
   const load = async () => {
-    const [b, a, cats] = await Promise.all([
-      listBudgets(),
-      checkBudgetAlerts(),
-      listCategories(),
-    ]);
-    setBudgets(b.data);
-    setAlerts(a.data || []);
-    setCategories(cats.data);
+    try {
+      const [b, a, cats] = await Promise.all([
+        listBudgets(),
+        checkBudgetAlerts(),
+        listCategories(),
+      ]);
+      setBudgets(b.data);
+      setAlerts(a.data || []);
+      setCategories(cats.data || []);
+    } catch (err) {
+      console.error("Error loading budgets:", err);
+    }
   };
 
   useEffect(() => {
     load();
   }, []);
 
+  // ✅ Submit handler
   const submit = async (e) => {
     e.preventDefault();
-    await createBudget({
-      category: form.category,
-      limit: Number(form.limit),   // ✅ Correct field
-      period: form.period,
-    });
-    setForm({ category: "", limit: "", period: "monthly" });
-    load();
+    try {
+      await createBudget({
+        category: form.category,
+        limit: Number(form.limit),
+        period: form.period,
+      });
+      setForm({ category: "", limit: "", period: "monthly" });
+      load();
+    } catch (err) {
+      console.error("Error creating budget:", err);
+    }
   };
 
+  // ✅ Dynamic progress color utilities
   const getProgressColor = (percentage) => {
     if (percentage >= 90) return "from-danger-500 to-danger-600";
     if (percentage >= 70) return "from-warning-500 to-warning-600";
@@ -90,8 +99,8 @@ export default function Budgets() {
             <div key={i} className="flex items-center gap-3 text-sm mb-2">
               <AlertTriangle className="w-4 h-4 text-warning-600" />
               <span>
-                <strong>{a.category}</strong>: You've used ₹{a.spent.toLocaleString()} / ₹
-                {a.limit.toLocaleString()}
+                <strong>{a.category}</strong>: You've used ₹
+                {a.spent.toLocaleString()} / ₹{a.limit.toLocaleString()}
               </span>
             </div>
           ))}
@@ -106,6 +115,7 @@ export default function Budgets() {
         </div>
 
         <div className="grid md:grid-cols-4 gap-4">
+          {/* ✅ Filter only expense categories */}
           <select
             className="input"
             required
@@ -113,11 +123,13 @@ export default function Budgets() {
             onChange={(e) => setForm({ ...form, category: e.target.value })}
           >
             <option value="">Select Category</option>
-            {categories.map((c) => (
-              <option key={c._id} value={c.name}>
-                {c.name}
-              </option>
-            ))}
+            {categories
+              .filter((c) => c.type === "expense") // ✅ Show only expense types
+              .map((c) => (
+                <option key={c._id} value={c.name}>
+                  {c.name}
+                </option>
+              ))}
           </select>
 
           <input
@@ -145,8 +157,8 @@ export default function Budgets() {
 
       {/* Budget List */}
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {budgets.map((b, idx) => {
-          const percentage = Math.min(100, Math.round(b.percent || 0)); // ✅ Correct field
+        {budgets.map((b) => {
+          const percentage = Math.min(100, Math.round(b.percent || 0));
           return (
             <div
               key={b._id}
@@ -155,7 +167,8 @@ export default function Budgets() {
               <div className="flex justify-between items-start">
                 <h3 className="text-lg font-bold">{b.category}</h3>
                 <button
-                  className="text-danger-600"
+                  type="button"
+                  className="text-danger-600 hover:text-danger-700 transition"
                   onClick={async () => {
                     await deleteBudget(b._id);
                     load();
@@ -166,7 +179,8 @@ export default function Budgets() {
               </div>
 
               <p className="text-sm text-slate-600 dark:text-slate-300 mt-1">
-                ₹{(b.spent || 0).toLocaleString()} / ₹{(b.limit || 0).toLocaleString()}
+                ₹{(b.spent || 0).toLocaleString()} / ₹
+                {(b.limit || 0).toLocaleString()}
               </p>
 
               <div className="relative h-3 bg-slate-300/40 rounded-full mt-3">

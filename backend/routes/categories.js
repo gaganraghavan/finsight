@@ -130,36 +130,23 @@ router.put('/:id', async (req, res) => {
 });
 
 // ✅ Delete category only if unused
-router.delete('/:id', async (req, res) => {
+router.delete("/:id", authMiddleware, async (req, res) => {
   try {
-    const category = await Category.findOne({
+    const category = await Category.findOneAndDelete({
       _id: req.params.id,
-      user: req.userId
+      user: req.userId,
+      isDefault: false
     });
 
     if (!category) {
-      return res.status(404).json({ message: 'Category not found' });
+      return res.status(404).json({ message: "Category not found" });
     }
 
-    const used = await Transaction.countDocuments({
-      user: req.userId,
-      category: category.name
-    });
-
-    if (used > 0) {
-      return res.status(400).json({
-        message: `Cannot delete. Used in ${used} transactions.`,
-        used
-      });
-    }
-
-    await category.deleteOne();
-    res.json({ message: 'Category deleted successfully' });
-
-  } catch (error) {
-    console.error('DELETE category error:', error);
-    res.status(500).json({ message: 'Server error', error: error.message });
+    res.json({ message: "Category deleted" });
+  } catch (err) {
+    res.status(500).json({ message: "Server error" });
   }
 });
+
 
 module.exports = router;

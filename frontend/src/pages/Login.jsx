@@ -39,7 +39,7 @@ export default function Login() {
   // ✅ Handle Google Response
   const handleGoogleResponse = async (response) => {
     try {
-      const res = await axios.post("http://localhost:5000/api/auth/google-login", {
+      const res = await axios.post("http://localhost:5001/api/auth/google-login", {
         credential: response.credential,
       });
 
@@ -78,12 +78,6 @@ export default function Login() {
       {/* Left Section - unchanged */}
       <div className="hidden lg:flex flex-col justify-center p-12 animate-slide-up">
         <div className="space-y-8">
-          <div className="inline-block">
-            <div className="p-4 rounded-2xl bg-gradient-to-br from-primary-500 to-accent-500 text-white shadow-2xl shadow-primary-500/30 animate-float">
-              <Sparkles className="w-12 h-12" />
-            </div>
-          </div>
-
           <div>
             <h1 className="text-5xl font-bold bg-gradient-to-r from-primary-600 to-accent-600 dark:from-primary-400 dark:to-accent-400 bg-clip-text text-transparent mb-4">
               Welcome to FinSight

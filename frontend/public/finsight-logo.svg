@@ -1,0 +1,20 @@
+<svg width="128" height="128" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+        <linearGradient id="grad-a" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stop-color="#6366f1" />
+            <stop offset="100%" stop-color="#a855f7" />
+        </linearGradient>
+        <linearGradient id="grad-b" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stop-color="#a855f7" />
+            <stop offset="100%" stop-color="#ec4899" />
+        </linearGradient>
+        <linearGradient id="grad-c" x1="100%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stop-color="#ec4899" />
+            <stop offset="100%" stop-color="#f59e0b" />
+        </linearGradient>
+    </defs>
+    <ellipse cx="32" cy="32" rx="28" ry="18" stroke="url(#grad-a)" stroke-width="2.5" fill="none"/>
+    <circle cx="32" cy="32" r="12" fill="url(#grad-a)"/>
+    <path d="M32 32 L32 20 A12 12 0 0 1 44 32 Z" fill="url(#grad-b)"/>
+    <path d="M32 32 L44 32 A12 12 0 0 1 32 44 Z" fill="url(#grad-c)"/>
+</svg>

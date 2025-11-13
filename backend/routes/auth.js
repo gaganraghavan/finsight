@@ -2,6 +2,7 @@ const express = require('express');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const Category = require('../models/Category');
+const Transaction = require("../models/Transaction");
 const authMiddleware = require('../middleware/auth');
 const { OAuth2Client } = require("google-auth-library");
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
@@ -187,6 +188,18 @@ router.post("/google-login", async (req, res) => {
     res.status(500).json({ message: "Google login failed" });
   }
 });
+
+router.delete("/delete", authMiddleware, async (req, res) => {
+  try {
+    await User.findByIdAndDelete(req.userId);
+    await Transaction.deleteMany({ user: req.userId });
+
+    res.json({ message: "Account deleted successfully." });
+  } catch (err) {
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
 
 
 module.exports = router;
