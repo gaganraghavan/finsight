@@ -12,7 +12,7 @@ const {
   displayActiveRecurring
 } = require('./utils/scheduler');
 
-// ✅ Route imports
+// Route imports
 const authRoutes = require('./routes/auth');
 const transactionRoutes = require('./routes/transactions');
 const categoryRoutes = require('./routes/categories');
@@ -24,7 +24,7 @@ const uploadRoutes = require("./routes/upload");
 
 const app = express();
 
-// ✅ Middleware
+//Middleware
 app.use(cors({ origin: "http://localhost:5173", credentials: true }));
 app.use(express.json());
 
