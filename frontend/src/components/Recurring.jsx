@@ -11,6 +11,7 @@ export default function Recurring() {
     category: "",
     frequency: "monthly",
     startDate: new Date().toISOString().slice(0, 10),
+    endDate: "",  // ✅ ADDED
   });
 
   const load = async () => {
@@ -32,6 +33,7 @@ export default function Recurring() {
       category: form.category,
       frequency: form.frequency,
       startDate: new Date(form.startDate).toISOString(),
+      endDate: form.endDate ? new Date(form.endDate).toISOString() : null,  // ✅ ADDED
     };
 
     await createRecurring(payload);
@@ -43,6 +45,7 @@ export default function Recurring() {
       category: "",
       frequency: "monthly",
       startDate: new Date().toISOString().slice(0, 10),
+      endDate: "",  // ✅ ADDED
     });
 
     load();
@@ -52,12 +55,12 @@ export default function Recurring() {
     <section className="max-w-7xl mx-auto p-6 space-y-6">
       <h1 className="text-3xl font-bold mb-2">Recurring</h1>
 
-      {/* ✅ FORM (Glass + Light/Dark compatible) */}
+      {/* ✅ FORM - Changed to grid-cols-8 */}
       <form
         autoComplete="off"
         onSubmit={submit}
         className="
-          grid md:grid-cols-7 gap-3 p-4 rounded-2xl 
+          grid md:grid-cols-8 gap-3 p-4 rounded-2xl 
           bg-white/70 dark:bg-slate-900/30 
           border border-slate-300 dark:border-slate-700 
           backdrop-blur-xl shadow-sm
@@ -113,18 +116,29 @@ export default function Recurring() {
           <option value="yearly">Yearly</option>
         </select>
 
-        {/* Date */}
+        {/* Start Date */}
         <input
           className="input h-full"
           type="date"
           value={form.startDate}
           onChange={(e) => setForm({ ...form, startDate: e.target.value })}
+          required
+        />
+
+        {/* ✅ ADDED - End Date (Optional) */}
+        <input
+          className="input h-full"
+          type="date"
+          placeholder="End Date (Optional)"
+          value={form.endDate}
+          onChange={(e) => setForm({ ...form, endDate: e.target.value })}
+          min={form.startDate}
         />
 
         <button className="btn-primary w-full h-full">Add</button>
       </form>
 
-      {/* ✅ TABLE (Light + Dark Mode Styled) */}
+      {/* ✅ TABLE - Added End Date column */}
       <div
         className="
           rounded-2xl overflow-hidden 
@@ -147,6 +161,7 @@ export default function Recurring() {
               <th className="p-3">Type</th>
               <th className="p-3">Category</th>
               <th className="p-3">Amount</th>
+              <th className="p-3">End Date</th>  {/* ✅ ADDED */}
               <th className="p-3">Active</th>
             </tr>
           </thead>
@@ -164,6 +179,15 @@ export default function Recurring() {
                 <td className="p-3 capitalize">{r.type}</td>
                 <td className="p-3">{r.category}</td>
                 <td className="p-3">₹{r.amount}</td>
+                
+                {/* ✅ ADDED - Display End Date */}
+                <td className="p-3">
+                  {r.endDate 
+                    ? new Date(r.endDate).toLocaleDateString() 
+                    : <span className="text-slate-400">Never</span>
+                  }
+                </td>
+                
                 <td className="p-3">
                   <button
                     className={`px-3 py-1 rounded-lg text-xs font-semibold transition ${
